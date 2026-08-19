@@ -71,7 +71,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product product = modelMapper.map(productDTO, Product.class);
-        product.setImage("default.png");
+        if (productDTO.getImage() != null && !productDTO.getImage().isBlank()) {
+            product.setImage(productDTO.getImage().trim());
+        } else {
+            product.setImage("default.png");
+        }
         product.setCategory(category);
         double specialPrice = product.getPrice() - (product.getDiscount() * 0.01) * product.getPrice();
         product.setSpecialPrice(specialPrice);
@@ -124,6 +128,9 @@ public class ProductServiceImpl implements ProductService {
         productFromDb.setQuantity(productDTO.getQuantity());
         productFromDb.setDiscount(productDTO.getDiscount());
         productFromDb.setPrice(productDTO.getPrice());
+        if (productDTO.getImage() != null && !productDTO.getImage().isBlank()) {
+            productFromDb.setImage(productDTO.getImage().trim());
+        }
         double specialPrice = productDTO.getPrice() - (productDTO.getDiscount() * 0.01) * productDTO.getPrice();
         productFromDb.setSpecialPrice(specialPrice);
         Product savedProduct = productRepository.save(productFromDb);
@@ -159,11 +166,7 @@ public class ProductServiceImpl implements ProductService {
         carts.forEach(cart -> cartService.deleteProductFromCart(cart.getCartId(), productId));
 
         productRepository.delete(product);
-        ProductDTO deletedDTO = modelMapper.map(product, ProductDTO.class);
-        if (product.getCategory() != null) {
-            deletedDTO.setCategoryName(product.getCategory().getCategoryName());
-        }
-        return deletedDTO;
+        return modelMapper.map(product, ProductDTO.class);
     }
 
     @Override
@@ -171,17 +174,17 @@ public class ProductServiceImpl implements ProductService {
         Product productFromDb = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
-        // Upload image
         String fileName = uploadImage(path, image);
         productFromDb.setImage(fileName);
         Product updatedProduct = productRepository.save(productFromDb);
+
         return modelMapper.map(updatedProduct, ProductDTO.class);
     }
 
     private String uploadImage(String path, MultipartFile file) throws IOException {
         String originalFilename = file.getOriginalFilename();
         String randomId = UUID.randomUUID().toString();
-        String fileName = randomId.concat(originalFilename.substring(originalFilename.lastIndexOf('.')));
+        String fileName = randomId.concat(originalFilename.substring(originalFilename.lastIndexOf(".")));
         String filePath = path + File.separator + fileName;
 
         File folder = new File(path);
@@ -195,26 +198,22 @@ public class ProductServiceImpl implements ProductService {
 
     private ProductResponse buildProductResponse(Page<Product> pageProducts) {
         List<Product> products = pageProducts.getContent();
-        if (products.isEmpty()) {
-            throw new APIException("No products found!");
-        }
-        List<ProductDTO> productDTOS = products.stream()
-                .map(product -> {
-                    ProductDTO dto = modelMapper.map(product, ProductDTO.class);
-                    if (product.getCategory() != null) {
-                        dto.setCategoryName(product.getCategory().getCategoryName());
-                    }
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        List<ProductDTO> productDTOs = products.stream().map(product -> {
+            ProductDTO dto = modelMapper.map(product, ProductDTO.class);
+            if (product.getCategory() != null) {
+                dto.setCategoryName(product.getCategory().getCategoryName());
+                dto.setCategoryId(product.getCategory().getCategoryId());
+            }
+            return dto;
+        }).collect(Collectors.toList());
 
-        ProductResponse productResponse = new ProductResponse();
-        productResponse.setContent(productDTOS);
-        productResponse.setPageNumber(pageProducts.getNumber());
-        productResponse.setPageSize(pageProducts.getSize());
-        productResponse.setTotalElements(pageProducts.getTotalElements());
-        productResponse.setTotalPages(pageProducts.getTotalPages());
-        productResponse.setLastPage(pageProducts.isLast());
-        return productResponse;
+        ProductResponse response = new ProductResponse();
+        response.setContent(productDTOs);
+        response.setPageNumber(pageProducts.getNumber());
+        response.setPageSize(pageProducts.getSize());
+        response.setTotalElements(pageProducts.getTotalElements());
+        response.setTotalPages(pageProducts.getTotalPages());
+        response.setLastPage(pageProducts.isLast());
+        return response;
     }
 }
