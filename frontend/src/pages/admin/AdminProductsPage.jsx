@@ -4,7 +4,7 @@ import { fetchProducts, fetchCategories, selectProducts, selectCategories, selec
 import { addProduct, updateProduct, deleteProduct, updateProductImage } from '../../api/productAPI';
 import { useForm } from 'react-hook-form';
 import Pagination from '../../components/Pagination';
-import { Plus, Pencil, Trash2, X, Upload, Image as ImageIcon, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Upload, Image as ImageIcon, Check, Search, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getProductImageUrl } from '../../utils/productImages';
 
@@ -14,7 +14,11 @@ export default function AdminProductsPage() {
   const categories = useSelector(selectCategories);
   const pagination = useSelector(selectPagination);
   const loading = useSelector(selectProductsLoading);
+
   const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+
   const [modal, setModal] = useState(null); // null | 'add' | 'edit'
   const [editProduct, setEditProduct] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -24,9 +28,28 @@ export default function AdminProductsPage() {
   const watchImageUrl = watch('image');
 
   useEffect(() => {
-    dispatch(fetchProducts({ pageNumber: page, pageSize: 10 }));
+    dispatch(fetchProducts({ pageNumber: page, pageSize: 50 }));
     dispatch(fetchCategories({ pageSize: 50 }));
   }, [dispatch, page]);
+
+  // Client-side instant filtering across loaded catalog
+  const filteredProducts = products.filter(p => {
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch = !term ||
+      p.productName.toLowerCase().includes(term) ||
+      (p.description && p.description.toLowerCase().includes(term));
+
+    const matchesCategory = !selectedCategory ||
+      String(p.categoryId) === String(selectedCategory) ||
+      (p.categoryName && p.categoryName.toLowerCase() === selectedCategory.toLowerCase());
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+  };
 
   const openAdd = () => {
     reset();
@@ -94,7 +117,7 @@ export default function AdminProductsPage() {
         toast.success('New product image uploaded successfully!');
       }
 
-      dispatch(fetchProducts({ pageNumber: page, pageSize: 10 }));
+      dispatch(fetchProducts({ pageNumber: page, pageSize: 50 }));
       closeModal();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Operation failed');
@@ -106,7 +129,7 @@ export default function AdminProductsPage() {
     try {
       await deleteProduct(productId);
       toast.success('Product deleted');
-      dispatch(fetchProducts({ pageNumber: page, pageSize: 10 }));
+      dispatch(fetchProducts({ pageNumber: page, pageSize: 50 }));
     } catch (e) {
       toast.error('Could not delete product');
     }
@@ -114,19 +137,76 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700 }}>Product Management</h1>
-          <p className="text-muted text-sm">{pagination.totalElements} products in catalog</p>
+          <p className="text-muted text-sm">Showing {filteredProducts.length} of {products.length} products</p>
         </div>
         <button className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> Add New Product
         </button>
       </div>
 
+      {/* Search & Filter Toolbar */}
+      <div className="card" style={{ padding: 16, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Search Input */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search by product name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ paddingLeft: 38 }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', color: 'var(--color-text-muted)' }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Category Dropdown Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 200 }}>
+          <Filter size={16} style={{ color: 'var(--color-text-muted)' }} />
+          <select
+            className="form-select"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={{ minWidth: 180 }}
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Reset Filter Button */}
+        {(searchTerm || selectedCategory) && (
+          <button className="btn btn-ghost btn-sm" onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <RotateCcw size={14} /> Reset Filters
+          </button>
+        )}
+      </div>
+
+      {/* Products Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div className="loading-spinner"><div className="spinner"></div></div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="empty-state" style={{ padding: 40 }}>
+            <div className="empty-state-title">No matching products found</div>
+            <div className="empty-state-text">Try adjusting your search query or category filter</div>
+            <button className="btn btn-outline btn-sm" onClick={clearFilters} style={{ marginTop: 12 }}>
+              Clear Search & Filters
+            </button>
+          </div>
         ) : (
           <table className="data-table">
             <thead>
@@ -141,7 +221,7 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map(p => {
+              {filteredProducts.map(p => {
                 const imgUrl = getProductImageUrl(p);
                 return (
                   <tr key={p.productId}>
@@ -155,7 +235,7 @@ export default function AdminProductsPage() {
                     </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{p.productName}</div>
-                      <div className="text-xs text-muted" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div className="text-xs text-muted" style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {p.description}
                       </div>
                     </td>
