@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../store/authSlice';
-import { Star, MessageSquare, MapPin, Send, Check } from 'lucide-react';
+import { Star, MessageSquare, MapPin, Send, Check, Globe } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function ProductReviews({ productId, onReviewAdded }) {
@@ -45,7 +45,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
         userLocation: location.trim() || 'Verified Buyer',
       });
 
-      toast.success('Review submitted! AI is re-analyzing product insights...');
+      toast.success('Review submitted! Google Gemini AI is re-analyzing global sentiment...');
       setTitle('');
       setComment('');
       setLocation('');
@@ -62,16 +62,40 @@ export default function ProductReviews({ productId, onReviewAdded }) {
     }
   };
 
+  const seedSampleGlobalReviews = async () => {
+    if (!user) { toast.error('Please log in to import sample reviews'); return; }
+    setSubmitting(true);
+    try {
+      const sampleList = [
+        { rating: 5, title: 'Exceptional build quality & performance in Tokyo', comment: 'Tested extensively on high-speed trains and humid summers in Shibuya. Performs flawlessly!', userLocation: 'Tokyo, Japan' },
+        { rating: 4, title: 'Reliable in cold London winter', comment: 'Durable construction and great insulation in 2°C outdoor temperatures. Highly recommended!', userLocation: 'London, UK' },
+        { rating: 5, title: 'Top choice for daily NYC commute', comment: 'Blocks ambient city noise completely. Fast charging gets me through 12-hour workdays effortlessly.', userLocation: 'New York, USA' },
+      ];
+
+      for (const item of sampleList) {
+        await axios.post(`/api/products/${productId}/reviews`, item);
+      }
+
+      toast.success('Added 3 sample global reviews from Tokyo, London & NYC!');
+      fetchReviews();
+      if (onReviewAdded) onReviewAdded();
+    } catch (e) {
+      toast.error('Could not import sample reviews');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1)
     : 0;
 
   return (
     <div style={{ marginTop: 36, paddingTop: 32, borderTop: '1px solid var(--color-border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MessageSquare size={20} className="text-primary" /> Customer Reviews & Ratings
+            <MessageSquare size={20} className="text-primary" /> Global Customer Reviews & Ratings
           </h2>
           {reviews.length > 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -81,12 +105,18 @@ export default function ProductReviews({ productId, onReviewAdded }) {
                 ))}
               </div>
               <span style={{ fontWeight: 700, fontSize: 16 }}>{avgRating} out of 5</span>
-              <span className="text-sm text-muted">({reviews.length} customer reviews)</span>
+              <span className="text-sm text-muted">({reviews.length} customer reviews worldwide)</span>
             </div>
           ) : (
-            <div className="text-sm text-muted" style={{ marginTop: 4 }}>No customer reviews yet. Be the first to review!</div>
+            <div className="text-sm text-muted" style={{ marginTop: 4 }}>No customer reviews yet. Be the first to add your global feedback!</div>
           )}
         </div>
+
+        {user && (
+          <button className="btn btn-outline btn-sm" onClick={seedSampleGlobalReviews} disabled={submitting}>
+            <Globe size={14} /> Quick-Add Sample Global Reviews
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: user ? '1fr 380px' : '1fr', gap: 32, alignItems: 'start' }}>
@@ -97,7 +127,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
           ) : reviews.length === 0 ? (
             <div className="empty-state" style={{ padding: 32, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
               <div className="empty-state-title">No reviews for this product yet</div>
-              <div className="empty-state-text">Submit your feedback below and Google Gemini AI will synthesize your review live!</div>
+              <div className="empty-state-text">Submit your feedback below or click "Quick-Add Sample Global Reviews" to see Google Gemini AI synthesize multi-country sentiment!</div>
             </div>
           ) : (
             reviews.map(rev => (
@@ -111,7 +141,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
                     </div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{rev.title}</div>
                   </div>
-                  <span className="text-xs text-muted" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span className="badge badge-outline" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                     <MapPin size={12} /> {rev.userLocation}
                   </span>
                 </div>
@@ -129,7 +159,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
         {/* Submit Review Form */}
         {user && (
           <div className="card" style={{ background: 'var(--color-surface)', position: 'sticky', top: 88 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Write a Customer Review</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Write / Paste a Global Review</h3>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Star Selector */}
@@ -153,7 +183,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
                 <label className="form-label">Review Headline</label>
                 <input
                   className="form-input"
-                  placeholder="e.g. Amazing build quality, great in humid weather"
+                  placeholder="e.g. Exceptional durability in humid climate"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -161,21 +191,21 @@ export default function ProductReviews({ productId, onReviewAdded }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Your Location / Region</label>
+                <label className="form-label">Customer Location / Country</label>
                 <input
                   className="form-input"
-                  placeholder="e.g. Mumbai (Humid), Delhi (Winter), Seattle"
+                  placeholder="e.g. Tokyo (Japan), Berlin (Germany), NYC (USA)"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Detailed Review</label>
+                <label className="form-label">Review Body (or Paste Real Review)</label>
                 <textarea
                   className="form-input"
-                  rows={3}
-                  placeholder="Share your experience with fit, climate durability, and performance..."
+                  rows={4}
+                  placeholder="Paste or write customer review feedback here..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   required
@@ -183,7 +213,7 @@ export default function ProductReviews({ productId, onReviewAdded }) {
               </div>
 
               <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? 'Submitting...' : submitted ? <><Check size={16} /> Submitted!</> : <><Send size={16} /> Submit Review</>}
+                {submitting ? 'Submitting...' : submitted ? <><Check size={16} /> Submitted!</> : <><Send size={16} /> Submit Global Review</>}
               </button>
             </form>
           </div>

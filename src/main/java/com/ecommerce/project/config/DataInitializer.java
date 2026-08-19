@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -29,6 +30,9 @@ public class DataInitializer implements CommandLineRunner {
     ProductRepository productRepository;
 
     @Autowired
+    ReviewRepository reviewRepository;
+
+    @Autowired
     PasswordEncoder passwordEncoder;
 
     @Override
@@ -45,25 +49,27 @@ public class DataInitializer implements CommandLineRunner {
                 .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
 
         // 2. Ensure Admin User Exists (username: admin, password: admin123)
-        if (!userRepository.existsByUserName("admin")) {
-            User admin = new User("admin", "admin@ecommerce.com", passwordEncoder.encode("admin123"));
-            admin.setRoles(Set.of(adminRole, userRole));
-            userRepository.save(admin);
+        User adminUser = userRepository.findByUserName("admin").orElse(null);
+        if (adminUser == null) {
+            adminUser = new User("admin", "admin@ecommerce.com", passwordEncoder.encode("admin123"));
+            adminUser.setRoles(Set.of(adminRole, userRole));
+            adminUser = userRepository.save(adminUser);
             System.out.println("✅ Seeding: Created Admin User (username: admin, password: admin123)");
         }
 
         // 3. Ensure Demo Customer User Exists (username: john_doe, password: user123)
-        if (!userRepository.existsByUserName("john_doe")) {
-            User user = new User("john_doe", "john@example.com", passwordEncoder.encode("user123"));
-            user.setRoles(Set.of(userRole));
-            userRepository.save(user);
+        User johnUser = userRepository.findByUserName("john_doe").orElse(null);
+        if (johnUser == null) {
+            johnUser = new User("john_doe", "john@example.com", passwordEncoder.encode("user123"));
+            johnUser.setRoles(Set.of(userRole));
+            johnUser = userRepository.save(johnUser);
             System.out.println("✅ Seeding: Created Customer User (username: john_doe, password: user123)");
         }
 
-        // 4. Seed 100+ Products if product count < 100
-        if (productRepository.count() < 100) {
+        // 4. Ensure Catalog Categories & Products Exist
+        if (productRepository.count() == 0) {
             Category electronics = getOrCreateCategory("Electronics");
-            Category fashion = getOrCreateCategory("Fashion & Apparel");
+            Category fashion = getOrCreateCategory("Fashion");
             Category home = getOrCreateCategory("Home & Kitchen");
             Category books = getOrCreateCategory("Books & Stationery");
             Category fitness = getOrCreateCategory("Fitness & Sports");
@@ -71,66 +77,46 @@ public class DataInitializer implements CommandLineRunner {
 
             List<Product> productsToSave = new ArrayList<>();
 
-            // Electronics (25 items)
             String[] elecItems = {
-                "UltraHD 4K Smart OLED TV 55 Inch", "Pro Wireless Noise Canceling Headphones", "Smart Watch Ultra GPS & Cellular",
-                "Ergonomic Gaming Mouse 16000 DPI", "RGB Mechanical Gaming Keyboard Pro", "Thunderbolt 4 Docking Station",
-                "High Speed Wi-Fi 6 Mesh Router", "Portable Bluetooth Speaker Waterproof", "Fast Charging Power Bank 20000mAh",
-                "Noise Canceling Earbuds True Wireless", "4K Webcam with Dual Microphones", "External NVMe SSD 1TB USB-C",
-                "Smart Home Security Camera 1080p", "Curved Ultrawide Monitor 34 Inch", "Mirrorless Camera 4K Video Kit",
-                "Smart Voice Assistant Speaker", "Quad-Core Tablet 10.5 Inch", "Foldable Drone with 4K Camera",
-                "Subwoofer Soundbar 300W Dolby", "Universal GaN Fast Charger 65W", "VR Headset Motion Controllers",
-                "Wireless Presenter Remote Control", "Digital Drawing Graphics Tablet", "Electric Standing Desk Dual Motor",
-                "Smart LED Strip Light Sync RGB"
+                "Wireless Noise-Canceling Headphones", "Smart Fitness Watch Waterproof", "4K Ultra HD Smart LED TV 55-inch",
+                "Ergonomic Wireless Optical Mouse", "Mechanical Gaming Keyboard RGB", "Portable Bluetooth Speaker 20W",
+                "High-Capacity Power Bank 20000mAh", "True Wireless Earbuds IPX7", "Fast Charging USB-C Hub 7-in-1",
+                "Full HD Webcam 1080p Autofocus", "Smart Home Security Camera 360", "Portable SSD 1TB High-Speed",
+                "Noise-Canceling USB Headset Mic", "Wireless Charging Pad Dual 15W", "Smart Wi-Fi Router Tri-Band"
             };
 
-            // Fashion (25 items)
             String[] fashionItems = {
-                "Classic Lambskin Leather Jacket", "Slim Fit Denim Jeans Dark Wash", "100% Organic Cotton Polo T-Shirt",
-                "Casual Canvas Sneakers Unisex", "Formal Oxford Dress Shoes Leather", "Waterproof Winter Down Parka",
-                "Breathable Running Athletic Shoes", "Vintage Polarized Sunglasses UV400", "Handcrafted Leather Travel Duffle",
-                "Tailored Fit Suit Blazer Navy", "Women Silk Evening Wrap Dress", "Comfortable Jogger Sweatpants",
-                "Chronograph Stainless Steel Watch", "Lightweight Puffer Vest Sleeveless", "Knit Wool Beanie Hat Winter",
-                "Classic Aviator Metal Sunglasses", "Soft Cashmere Sweater V-Neck", "High Waist Athletic Leggings",
-                "Floral Summer Beach Sundress", "Genuine Leather Belt Silver Buckle", "Canvas Laptop Backpack 15 Inch",
-                "Casual Slip-on Loafers Leather", "Thermal Base Layer Fleece Suit", "Water Resistant Windbreaker Jacket",
-                "Designer Minimalist Wallet Cardholder"
+                "Classic Leather Jacket for Men", "Slim Fit Denim Jeans Stretch", "Casual Cotton T-Shirt Pack of 3",
+                "Women Floral Summer Maxi Dress", "Lightweight Running Sneakers", "Polarized Aviator Sunglasses",
+                "Genuine Leather Minimalist Wallet", "Water Resistant Sports Windbreaker", "Fleece Pullover Hoodie Unisex",
+                "Stainless Steel Quartz Watch", "Canvas Casual Messenger Bag", "Wool Blend Winter Scarf", "Thermal Compression Base Layer",
+                "Ankle Boots Waterproof Synthetic", "Athletic Performance Shorts 2-in-1"
             };
 
-            // Home & Kitchen (25 items)
             String[] homeItems = {
-                "Automatic Espresso Machine Barista", "Air Fryer Oven XL 6-in-1", "Robotic Vacuum Cleaner Mop Combo",
-                "Non-Stick Ceramic Cookware 10-Piece", "High Speed Blender 1500W Smoothie", "Stainless Steel French Press Coffee",
-                "Ergonomic Memory Foam Pillow", "Luxury Egyptian Cotton Sheet Set", "Cast Iron Dutch Oven 6-Quart",
-                "Smart Electric Kettle Temperature", "Compact Countertop Microwave Oven", "Stainless Steel Knife Set Block",
-                "HEPA Air Purifier Quiet Bedroom", "Ultrasonic Cool Mist Humidifier", "Handheld Cordless Vacuum Cleaner",
-                "Insulated Stainless Steel Water Bottle", "Chef Precision Digital Food Scale", "Automatic Bread Maker 2lb Pan",
-                "Electric Pressure Cooker 7-in-1", "Bamboo Cutting Board Heavy Duty", "Silicone Baking Mat Set Non-stick",
-                "Modern Table Lamp Touch Dimmer", "Aromatherapy Essential Oil Diffuser", "Stainless Steel Trash Can Motion",
-                "Microfiber Spin Mop Bucket System"
+                "Espresso Coffee Maker 15-Bar", "Air Fryer Oven Digital 5L", "Robot Vacuum Cleaner Smart Mapping",
+                "Non-Stick Ceramic Cookware Set 10-Piece", "Stainless Steel Electric Kettle 1.7L", "Memory Foam Pillow Ergonomic",
+                "High-Speed Stand Blender 1200W", "Adjustable Desk Lamp LED Touch", "Aromatherapy Essential Oil Diffuser",
+                "Stainless Steel Insulated Tumbler 30oz", "Digital Kitchen Scale Precision", "Cast Iron Dutch Oven 5-Quart",
+                "Microfiber Sheet Set Queen 4-Piece", "Automatic Milk Frother & Steamer", "Handheld Garment Steamer Portable"
             };
 
-            // Books & Stationery (20 items)
             String[] bookItems = {
-                "Clean Code: Handbook of Agile Craft", "Design Patterns: Reusable Object Oriented", "The Pragmatic Programmer 20th Anniversary",
-                "Refactoring: Improving Existing Code", "System Design Interview Insider Guide", "Database Internals: Storage & Architecture",
-                "Designing Data-Intensive Applications", "Introduction to Algorithms 4th Edition", "Atomic Habits: Easy & Proven Way", "The Psychology of Money Timeless Lessons",
-                "Deep Work: Rules for Focused Success", "Zero to One: Notes on Startups", "Sapiens: Brief History of Humankind",
-                "Thinking, Fast and Slow Paperback", "Rich Dad Poor Dad Financial Education", "Executive Leather Journal Notebook",
-                "Fountain Pen Fine Nib Refillable", "Ergonomic Gel Pen Set 12 Colors", "Adjustable Desktop Book Stand Metal",
-                "Minimalist Weekly Desk Planner Pad"
+                "Clean Code A Handbook of Agile Craftsmanship", "The Pragmatic Programmer 20th Anniversary", "Design Patterns Elements of Reusable Software",
+                "System Design Interview An Insider Guide", "Atomic Habits Tiny Changes Remarkable Results", "Deep Work Rules for Focused Success",
+                "Thinking Fast and Slow Daniel Kahneman", "Zero to One Notes on Startups", "Psychology of Money Morgan Housel",
+                "Hard Things About Hard Things Ben Horowitz", "Refactoring Improving Design of Existing Code", "Grokking Algorithms Illustrated Guide",
+                "Fountain Pen Fine Nib Refillable", "Ergonomic Gel Pen Set 12 Colors", "Adjustable Desktop Book Stand Metal"
             };
 
-            // Fitness & Sports (15 items)
             String[] fitnessItems = {
                 "Adjustable Dumbbells Set 50lbs", "Non-Slip Eco Yoga Mat 6mm Thick", "Resistance Exercise Bands 5-Piece",
                 "Smart Jump Rope Speed Counter", "Deep Tissue Muscle Massage Gun", "Foldable Treadmill Walking Pad",
                 "Indoor Stationary Cycling Bike", "Ab Roller Wheel Automatic Rebound", "Heavy Duty Pull Up Bar Doorway",
-                "Weighted Vest for Workouts 20lbs", "Hydration Running Belt Waist Pack", "Gym Gym Bag Shoe Compartment",
+                "Weighted Vest for Workouts 20lbs", "Hydration Running Belt Waist Pack", "Gym Bag Shoe Compartment",
                 "Foam Roller High Density Muscle", "Agility Ladder Speed Training Kit", "Kettlebell Solid Cast Iron 25lbs"
             };
 
-            // Beauty & Personal Care (15 items)
             String[] beautyItems = {
                 "Sonic Electric Toothbrush Smart Sensor", "Professional Hair Dryer Negative Ionic", "Beard Grooming Kit Oil & Balm",
                 "Hydrating Facial Cleanser Gentle", "Vitamin C Serum Anti-Aging Skin", "Sunscreen SPF 50 Broad Spectrum",
@@ -151,6 +137,40 @@ public class DataInitializer implements CommandLineRunner {
             productRepository.saveAll(productsToSave);
             System.out.println("✅ Seeding Complete: Successfully populated " + productsToSave.size() + " products in PostgreSQL!");
         }
+
+        // 5. Seed Global Real Customer Reviews Across Countries if no reviews exist
+        if (reviewRepository.count() == 0) {
+            Product headPhones = productRepository.findById(1L).orElse(null);
+            if (headPhones != null && johnUser != null) {
+                seedGlobalReview(headPhones, johnUser, 5, "Unmatched ANC on Tokyo Shinkansen Commute", "Active Noise Cancellation isolates high speed bullet train noise exceptionally well. Earpads are soft and breathable during Tokyo humid summer.", "Tokyo, Japan");
+                seedGlobalReview(headPhones, johnUser, 4, "Sturdy in Cold Scottish Winters", "Operates perfectly in Edinburgh winter weather down to 0°C. Battery life drops only slightly around 10%.", "Edinburgh, Scotland (UK)");
+                seedGlobalReview(headPhones, johnUser, 5, "Essential for NYC Subway & Flight", "Blocks out subway screech completely. 30 hour battery stamina got me through JFK to London flight with 40% left.", "New York, USA");
+                seedGlobalReview(headPhones, johnUser, 4, "Great Sound in Tropical Heat", "Excellent acoustic clarity! Synthetic leather cushions cause slight ear warmth in 34°C Mumbai monsoon humidity.", "Mumbai, India");
+                seedGlobalReview(headPhones, johnUser, 5, "Smooth Bluetooth in Berlin Metro", "Zero signal drops in crowded Alexanderplatz station. High fidelity bass response.", "Berlin, Germany");
+            }
+
+            Product leatherJacket = productRepository.findById(16L).orElse(null);
+            if (leatherJacket != null && johnUser != null) {
+                seedGlobalReview(leatherJacket, johnUser, 5, "Butter Soft Sheepskin for London Autumn", "Zero break-in period required! Keeps wind out during cool London autumn evenings.", "London, UK");
+                seedGlobalReview(leatherJacket, johnUser, 4, "Great for Sydney Two-Wheeler Rides", "Superb windblocking on my motorcycle commute. Quilted lining is comfortable.", "Sydney, Australia");
+                seedGlobalReview(leatherJacket, johnUser, 3, "Too Warm for Daytime Bangkok", "Beautiful leather craftsmanship, but quilted lining makes it too hot for humid summer daytime in Thailand.", "Bangkok, Thailand");
+                seedGlobalReview(leatherJacket, johnUser, 5, "Stylish Fit in Chicago Fall", "Looks like a $500 jacket. Perfect layer for 10°C Windy City fall weather.", "Chicago, USA");
+            }
+
+            System.out.println("✅ Seeding Complete: Successfully populated authentic Global Customer Reviews!");
+        }
+    }
+
+    private void seedGlobalReview(Product p, User u, int rating, String title, String comment, String location) {
+        Review r = new Review();
+        r.setProduct(p);
+        r.setUser(u);
+        r.setRating(rating);
+        r.setTitle(title);
+        r.setComment(comment);
+        r.setUserLocation(location);
+        r.setCreatedAt(LocalDateTime.now().minusDays(new Random().nextInt(30)));
+        reviewRepository.save(r);
     }
 
     private Category getOrCreateCategory(String name) {
