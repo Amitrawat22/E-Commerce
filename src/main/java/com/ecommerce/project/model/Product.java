@@ -29,10 +29,12 @@ public class Product {
     @Column(name = "product_name")
     private String productName;
 
+    @Column(length = 2000)
     private String image;
 
     @NotBlank
     @Size(min = 6, message = "Product description must contain at least 6 characters")
+    @Column(length = 5000)
     private String description;
 
     private Integer quantity;
