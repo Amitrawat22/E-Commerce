@@ -72,8 +72,8 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Auth & Error endpoints
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
                         // Public read endpoints
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
