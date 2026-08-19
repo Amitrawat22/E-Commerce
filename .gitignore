@@ -1,0 +1,29 @@
+# Target & Build outputs
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Frontend Build & Dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Uploaded Media
+images/
+
+# IDE & OS Files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
