@@ -6,6 +6,8 @@ import { selectUser } from '../store/authSlice';
 import { getProducts } from '../api/productAPI';
 import { ShoppingCart, ArrowLeft, Package, Tag, Check } from 'lucide-react';
 import { getProductImageUrl } from '../utils/productImages';
+import AiProductInsights from '../components/AiProductInsights';
+import ProductReviews from '../components/ProductReviews';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -17,6 +19,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [aiKey, setAiKey] = useState(0); // Used to trigger AI re-synthesis when new review added
 
   useEffect(() => {
     setLoading(true);
@@ -49,7 +52,7 @@ export default function ProductDetailPage() {
   const imgUrl = getProductImageUrl(product);
 
   return (
-    <div className="container">
+    <div className="container" style={{ paddingBottom: 60 }}>
       <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ marginTop: 24, marginBottom: 0 }}>
         <ArrowLeft size={16} /> Back
       </button>
@@ -154,6 +157,12 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Global Climate & Review Intelligence Section */}
+      <AiProductInsights key={aiKey} productId={product.productId} />
+
+      {/* Customer Reviews Section */}
+      <ProductReviews productId={product.productId} onReviewAdded={() => setAiKey(k => k + 1)} />
     </div>
   );
 }

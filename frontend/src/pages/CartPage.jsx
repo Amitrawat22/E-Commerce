@@ -4,6 +4,7 @@ import { fetchCart, updateQuantity, removeProduct, selectCartItems, selectCartTo
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { getProductImageUrl } from '../utils/productImages';
+import AiProductInsights from '../components/AiProductInsights';
 
 export default function CartPage() {
   const dispatch = useDispatch();
@@ -36,62 +37,67 @@ export default function CartPage() {
     <div className="container" style={{ padding: '32px 24px 60px' }}>
       <h1 className="page-title" style={{ marginBottom: 32 }}>Shopping Cart ({items.length} items)</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 32, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32, alignItems: 'start' }}>
         {/* Cart Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {items.map(item => {
             const imgUrl = getProductImageUrl(item);
             return (
-              <div key={item.productId} className="cart-item">
-                <img
-                  className="cart-item-image"
-                  src={imgUrl}
-                  alt={item.productName}
-                  onError={(e) => { e.target.src = `https://picsum.photos/seed/${item.productId}/200/200`; }}
-                />
+              <div key={item.productId} style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="cart-item">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, width: '100%' }}>
+                  <img
+                    className="cart-item-image"
+                    src={imgUrl}
+                    alt={item.productName}
+                    onError={(e) => { e.target.src = `https://picsum.photos/seed/${item.productId}/200/200`; }}
+                  />
 
-                <div className="cart-item-details" style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{item.productName}</div>
-                  {item.categoryName && <div className="text-xs text-muted" style={{ marginBottom: 8 }}>{item.categoryName}</div>}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                      ₹{item.specialPrice?.toFixed(2)}
-                    </span>
-                    {item.discount > 0 && (
-                      <span className="price-discount">{Math.round(item.discount)}% off</span>
-                    )}
+                  <div className="cart-item-details" style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{item.productName}</div>
+                    {item.categoryName && <div className="text-xs text-muted" style={{ marginBottom: 8 }}>{item.categoryName}</div>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        ₹{item.specialPrice?.toFixed(2)}
+                      </span>
+                      {item.discount > 0 && (
+                        <span className="price-discount">{Math.round(item.discount)}% off</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+                    <div className="cart-quantity-controls">
+                      <button
+                        className="cart-quantity-btn"
+                        onClick={() => dispatch(updateQuantity({ productId: item.productId, operation: 'delete' }))}
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="cart-quantity-num">{item.quantity}</span>
+                      <button
+                        className="cart-quantity-btn"
+                        onClick={() => dispatch(updateQuantity({ productId: item.productId, operation: 'add' }))}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-primary)' }}>
+                      ₹{((item.specialPrice || 0) * (item.quantity || 1)).toFixed(2)}
+                    </div>
+
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--color-error)' }}
+                      onClick={() => dispatch(removeProduct({ cartId, productId: item.productId }))}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-                  <div className="cart-quantity-controls">
-                    <button
-                      className="cart-quantity-btn"
-                      onClick={() => dispatch(updateQuantity({ productId: item.productId, operation: 'delete' }))}
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span className="cart-quantity-num">{item.quantity}</span>
-                    <button
-                      className="cart-quantity-btn"
-                      onClick={() => dispatch(updateQuantity({ productId: item.productId, operation: 'add' }))}
-                    >
-                      <Plus size={12} />
-                    </button>
-                  </div>
-
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-primary)' }}>
-                    ₹{((item.specialPrice || 0) * (item.quantity || 1)).toFixed(2)}
-                  </div>
-
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ color: 'var(--color-error)' }}
-                    onClick={() => dispatch(removeProduct({ cartId, productId: item.productId }))}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {/* AI Reality Check Badge / Compact Card */}
+                <AiProductInsights productId={item.productId} compact={true} />
               </div>
             );
           })}
