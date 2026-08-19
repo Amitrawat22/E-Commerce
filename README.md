@@ -187,15 +187,15 @@ Create the PostgreSQL database manually or via `psql`:
 psql -U postgres -c "CREATE DATABASE ecommerce_db;"
 ```
 
-Verify `src/main/resources/application.properties`:
+Configure `src/main/resources/application.properties`:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/ecommerce_db
-spring.datasource.username=postgres
-spring.datasource.password=Atlassian@Amit123
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
 
 # Gemini 3.6 Flash Free API Key
-gemini.api.key=YOUR_FREE_GEMINI_API_KEY_HERE
+gemini.api.key=YOUR_GEMINI_API_KEY
 ```
 
 ---
@@ -229,12 +229,12 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 🔑 Pre-Seeded Demo Accounts
+## 🔑 Pre-Seeded Accounts
 
 | Role | Username | Password | Access Capabilities |
 |---|---|---|---|
-| 👑 **Administrator** | `admin` | `admin123` | Admin Portal, Add/Edit Products, Search/Filters, Photo Settings, Manage Orders |
-| 👤 **Customer** | `john_doe` | `user123` | Browse Catalog, AI Reality Check, Submit Reviews, Cart, Checkout & Orders |
+| 👑 **Administrator** | `username` | `password` | Admin Portal, Add/Edit Products, Search/Filters, Photo Settings, Manage Orders |
+| 👤 **Customer** | `username` | `password` | Browse Catalog, AI Reality Check, Submit Reviews, Cart, Checkout & Orders |
 
 ---
 
